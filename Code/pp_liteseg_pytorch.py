@@ -16,13 +16,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from paddleseg import utils
-from paddleseg.models import layers
-from paddleseg.cvlibs import manager
-from paddleseg.utils import utils
-
-
-@manager.MODELS.add_component
 class PPLiteSeg(nn.Module):
     """
     The PP_LiteSeg implementation based on PaddlePaddle.
@@ -134,7 +127,7 @@ class PPLiteSeg(nn.Module):
 
     def init_weight(self):
         if self.pretrained is not None:
-            utils.load_entire_model(self, self.pretrained)
+            torch.load(self, self.pretrained)
 
 
 class PPLiteSegHead(nn.Layer):
