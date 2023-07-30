@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import math
 
-
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class ConvX(nn.Module):
     def __init__(self, in_planes, out_planes, kernel=3, stride=1):
@@ -236,7 +236,7 @@ class STDCNet813(nn.Module):
 
     def init_weight(self, pretrain_model):
         
-        state_dict = torch.load(pretrain_model, map_location=torch.device('cpu'))["state_dict"]
+        state_dict = torch.load(pretrain_model, map_location=torch.device(DEVICE))["state_dict"]
         self_state_dict = self.state_dict()
         for k, v in state_dict.items():
             self_state_dict.update({k: v})
