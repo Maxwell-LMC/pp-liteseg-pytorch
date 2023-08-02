@@ -56,3 +56,35 @@ class SPPM(nn.Module):
         out = self.conv_out(out)
         return out
     
+class UAFM(nn.Module):
+    def __init__(self,
+                 feature_high_channels,
+                 feature_low_channels,
+                 feature_high_shape,
+                 feature_low_shape,
+                 out_channels,
+                 AttentionModule='SAM'):
+        super().__init__()
+
+        self.upsample = nn.Upsample(size=feature_low_shape, mode='bilinear')
+        if AttentionModule == 'SAM':
+            self.AttentionModule = self.SAM()
+        elif AttentionModule == 'CAM':
+            self.AttentionModule = self.CAM()
+        else:
+            raise "Attention module not found"
+        
+
+    def SAM(self):
+        pass
+
+    def CAM(self):
+        pass
+
+    def forward(self, feature_high, feature_low):
+        feature_up = self.upsample(feature_high)
+        alpha = self.AttentionModule(feature_high, feature_low)
+        feature_out = feature_up * alpha + feature_low * (1 - alpha)
+        return feature_out
+
+    
