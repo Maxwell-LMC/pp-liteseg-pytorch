@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from STDC1_pytorch_raw.model import Model
 
+
 raw_image = Image.open('Code/Test_image/city.jpg')
 transform = transforms.Compose([
     transforms.PILToTensor()
