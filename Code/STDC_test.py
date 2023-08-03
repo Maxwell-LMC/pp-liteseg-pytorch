@@ -3,7 +3,7 @@ from PIL import Image
 import STDC.nets.stdcnet as stdcnet
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
-from STDC1_pytorch_raw.model import Model
+from STDC1_pytorch_raw.model import STDC1
 
 
 raw_image = Image.open('Code/Test_image/city.jpg')
@@ -20,7 +20,7 @@ T = T.squeeze(0)
 plt.imshow(T.permute(1,2,0))
 plt.show()
 
-stdc1 = Model()
+stdc1 = STDC1()
 
 stdc1.eval()
 with torch.inference_mode():

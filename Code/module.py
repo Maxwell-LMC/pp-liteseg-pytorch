@@ -137,5 +137,55 @@ class UAFM(nn.Module):
         feature_out = feature_up * alpha + feature_low * (1 - alpha)
         feature_out = self.conv_out(feature_out)
         return feature_out
+    
+class SegHead(nn.Module):
+    def __init__(self, in_chan, mid_chan, n_classes):
+        super().__init__()
+        self.conv = ConvBNReLU(
+            in_chan,
+            mid_chan,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False)
+        self.conv_out = nn.Conv2d(
+            mid_chan, n_classes, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.conv_out(x)
+        return x
+
+class FLD(nn.Module):
+    def __init__(self, feature_low_ch1, feature_low_ch2, feature_high_ch1, feature_high_ch2,
+                 out_ch1, out_ch2, seg_head_mid_ch,
+                 num_classes, resize_mode='bilinear', AttentionModule='SAM'):
+        super().__init__()
+
+
+
+        #initialise UAFMs
+        self.UAFM1 = UAFM(feature_low_channels=feature_low_ch1,
+                          feature_high_channels=feature_high_ch1,
+                          out_channels=out_ch1,
+                          resize_mode=resize_mode,
+                          AttentionModule=AttentionModule)
+
+        self.UAFM2 = UAFM(feature_low_channels=feature_low_ch2,
+                          feature_high_channels=feature_high_ch2,
+                          out_channels=out_ch2,
+                          resize_mode=resize_mode,
+                          AttentionModule=AttentionModule)
+        
+        #initialise seghead
+        self.seghead = SegHead(in_chan=out_ch2, mid_chan=seg_head_mid_ch, n_classes=num_classes)
+        
+
+    def forward(self, feature_after_SPPM, feature_low_one, feature_low_two):
+        feature_after_UAFM1 = self.UAFM1(feature_low_one, feature_after_SPPM)
+        feature_after_UAFM2 = self.UAFM2(feature_low_two, feature_after_UAFM1)
+        feature_after_FLD = self.seghead(feature_after_UAFM2)
+        return feature_after_FLD
+
 
 

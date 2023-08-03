@@ -11,9 +11,9 @@ import torch.nn.functional as F
 import torchvision
 
 
-class Model(nn.Module):
+class STDC1(nn.Module):
   def __init__(self):
-    super(Model, self).__init__()
+    super(STDC1, self).__init__()
     self._vars = nn.ParameterDict()
     self._regularizer_params = []
     for b in glob.glob(
@@ -491,7 +491,7 @@ class Model(nn.Module):
 
 @torch.no_grad()
 def test_run_model(inputs=[torch.from_numpy(np.random.randn(*[1, 3, 512, 1024]).astype(np.float32))]):
-  model = Model()
+  model = STDC1()
   model.eval()
   rs = model(*inputs)
   print(rs)
