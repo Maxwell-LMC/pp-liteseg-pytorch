@@ -6,7 +6,7 @@ import torch.onnx
 ###initialise liteseg model
 model = pytorch_liteseg.liteseg(num_classes=10, encoder=STDC1)
 
-feature = torch.randn((1,3,512,1024))
+feature = torch.randn((1,3,720,960))
 model.eval()
 with torch.inference_mode():
     output = model(feature)
@@ -36,4 +36,4 @@ def Convert_ONNX():
     print(" ") 
     print('Model has been converted to ONNX') 
 
-Convert_ONNX()
+# Convert_ONNX()
