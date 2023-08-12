@@ -6,7 +6,7 @@ import torch.onnx
 ###initialise liteseg model
 model = pytorch_liteseg.liteseg(num_classes=10, encoder=STDC1)
 
-feature = torch.randn((1,3,720,960))
+feature = torch.randn((3,3,720,960))
 model.eval()
 with torch.inference_mode():
     output = model(feature)

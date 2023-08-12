@@ -17,6 +17,7 @@ class camvidLoader(data.Dataset):
         img_size=[720,960],
         augmentations=None,
         img_norm=True,
+        train_size = 100
     ):
         self.root = root
         self.split = split
@@ -27,10 +28,11 @@ class camvidLoader(data.Dataset):
         self.mean = np.array([0,0,0])
         self.n_classes = 11
         self.files = collections.defaultdict(list)
+        self.train_size = train_size
 
         for split in ["train", "test", "val"]:
             file_list = os.listdir(root + "/" + split)
-            self.files[split] = file_list
+            self.files[split] = file_list[:self.train_size]
 
         Unlabelled = (0, 0, 0)
         Sky = (128, 128, 128)
@@ -90,14 +92,12 @@ class camvidLoader(data.Dataset):
             pass
         lbl = self.classify(lbl)
         img = np.transpose(img, axes=(2,0,1))
-        lbl = torch.from_numpy(lbl).float()
-        img = torch.from_numpy(img).float()
         return img, lbl
 
     def classify(self, lbl):
         masked_lbl = np.zeros(shape=(self.img_size[0],self.img_size[1]))
-        for i in range(len(lbl)):
-            for j in range(len(lbl[i])):
+        for i in range(self.img_size[0]):
+            for j in range(self.img_size[1]):
                 masked_lbl[i,j] = self.label_mapping[tuple(lbl[i,j])]
         return masked_lbl
 
