@@ -6,7 +6,6 @@ from imageio.v2 import imread
 import matplotlib.pyplot as plt
 from torch.utils import data
 from utils.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
-from PIL import Image
 
 
 class camvidLoader(data.Dataset):
@@ -18,7 +17,6 @@ class camvidLoader(data.Dataset):
         img_size=[720,960],
         augmentations=None,
         img_norm=True,
-        test_mode=False,
     ):
         self.root = root
         self.split = split
@@ -26,16 +24,44 @@ class camvidLoader(data.Dataset):
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_norm = img_norm
-        self.test_mode = test_mode
         self.mean = np.array([0,0,0])
-        self.n_classes = 12
+        self.n_classes = 11
         self.files = collections.defaultdict(list)
 
-        if not self.test_mode:
-            for split in ["train", "test", "val"]:
-                file_list = os.listdir(root + "/" + split)
-                self.files[split] = file_list
+        for split in ["train", "test", "val"]:
+            file_list = os.listdir(root + "/" + split)
+            self.files[split] = file_list
 
+        Unlabelled = (0, 0, 0)
+        Sky = (128, 128, 128)
+        Building = (128, 0, 0)
+        Pole = (192, 192, 128)
+        Road = (128, 64, 128)
+        Pavement = (0, 0, 192)
+        Tree = (128, 128, 0)
+        Fence = (64, 64, 128)
+        Car = (64, 0, 128)
+        Pedestrian = (64, 64, 0)
+        Bicyclist = (0, 128, 192)
+
+        mapping = {
+            Unlabelled:0,
+            Sky:1,
+            Building:2,
+            Pole:3,
+            Road:4,
+            Pavement:5,
+            Tree:6,
+            Fence:7,
+            Car:8,
+            Pedestrian:9,
+            Bicyclist:10,
+        }
+
+        self.label_mapping = collections.defaultdict(lambda: 0)
+
+        for key, value in mapping.items():
+            self.label_mapping[key] = value
     def __len__(self):
         return len(self.files[self.split])
 
@@ -48,7 +74,7 @@ class camvidLoader(data.Dataset):
         img = np.array(img, dtype=np.uint8)
 
         lbl = imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.int8)
+        lbl = np.array(lbl, dtype=np.uint8)
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
@@ -59,75 +85,37 @@ class camvidLoader(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
         if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
+            #PERFORM NORMALISATION
+            pass
+        lbl = self.classify(lbl)
+        img = np.transpose(img, axes=(2,0,1))
+        lbl = torch.from_numpy(lbl).float()
         img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
-    def decode_segmap(self, temp, plot=False):
-        Sky = [128, 128, 128]
-        Building = [128, 0, 0]
-        Pole = [192, 192, 128]
-        Road = [128, 64, 128]
-        Pavement = [60, 40, 222]
-        Tree = [128, 128, 0]
-        SignSymbol = [192, 128, 128]
-        Fence = [64, 64, 128]
-        Car = [64, 0, 128]
-        Pedestrian = [64, 64, 0]
-        Bicyclist = [0, 128, 192]
-        Unlabelled = [0, 0, 0]
-
-        label_colours = np.array(
-            [
-                Sky,
-                Building,
-                Pole,
-                Road,
-                Pavement,
-                Tree,
-                SignSymbol,
-                Fence,
-                Car,
-                Pedestrian,
-                Bicyclist,
-                Unlabelled,
-            ]
-        )
-        r = temp.copy()
-        g = temp.copy()
-        b = temp.copy()
-        for l in range(0, self.n_classes):
-            r[temp == l] = label_colours[l, 0]
-            g[temp == l] = label_colours[l, 1]
-            b[temp == l] = label_colours[l, 2]
-
-        rgb = np.zeros((temp.shape[0], temp.shape[1], 3))
-        rgb[:, :, 0] = r[:, :, 0] /255.0
-        rgb[:, :, 1] = g[:, :, 1] /255.0
-        rgb[:, :, 2] = b[:, :, 2] /255.0
-        return rgb
-
+    def classify(self, lbl):
+        masked_lbl = np.zeros(shape=(self.img_size[0],self.img_size[1]))
+        for i in range(len(lbl)):
+            for j in range(len(lbl[i])):
+                masked_lbl[i,j] = self.label_mapping[tuple(lbl[i,j])]
+        return masked_lbl
 
 if __name__ == "__main__":
     local_path = "CamVid"
     augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip(0.5)])
-    dst = camvidLoader(root=local_path, is_transform=False, augmentations=None, img_norm=False)
+    dst = camvidLoader(root=local_path, is_transform=True, augmentations=None, img_norm=False)
     bs = 2
     trainloader = data.DataLoader(dst, batch_size=bs)
     for i, data_samples in enumerate(trainloader):
         imgs, labels = data_samples
-        imgs = np.transpose(imgs, [0, 1,2,3])
-        f, axarr = plt.subplots(bs, 2)
+        # imgs = np.transpose(imgs, [0, 1,2,3])
+        # f, axarr = plt.subplots(bs, 2)
         for j in range(bs):
-            axarr[j][0].imshow(imgs[j])
-            axarr[j][1].imshow(dst.decode_segmap(labels.numpy()[j]))
-        plt.show()
+            print(type(imgs[j]), type(labels[j]))
+            # print(imgs[j], labels[j])
+            # print(imgs[j].shape, labels[j].shape)
+            # axarr[j][0].imshow(imgs[j])
+            # axarr[j][1].imshow(labels[j])
+        # plt.show()
+        break
