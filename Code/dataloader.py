@@ -17,7 +17,9 @@ class camvidLoader(data.Dataset):
         img_size=[720,960],
         augmentations=None,
         img_norm=True,
-        train_size = 100
+        train_size = 100,
+        n_classes = 11,
+        convert_label_class = True
     ):
         self.root = root
         self.split = split
@@ -26,57 +28,31 @@ class camvidLoader(data.Dataset):
         self.augmentations = augmentations
         self.img_norm = img_norm
         self.mean = np.array([0,0,0])
-        self.n_classes = 11
+        self.n_classes = n_classes
         self.files = collections.defaultdict(list)
         self.train_size = train_size
+        self.convert_label_class = convert_label_class
 
         for split in ["train", "test", "val"]:
             file_list = os.listdir(root + "/" + split)
             self.files[split] = file_list[:self.train_size]
 
-        Unlabelled = (0, 0, 0)
-        Sky = (128, 128, 128)
-        Building = (128, 0, 0)
-        Pole = (192, 192, 128)
-        Road = (128, 64, 128)
-        Pavement = (0, 0, 192)
-        Tree = (128, 128, 0)
-        Fence = (64, 64, 128)
-        Car = (64, 0, 128)
-        Pedestrian = (64, 64, 0)
-        Bicyclist = (0, 128, 192)
-
-        mapping = {
-            Unlabelled:0,
-            Sky:1,
-            Building:2,
-            Pole:3,
-            Road:4,
-            Pavement:5,
-            Tree:6,
-            Fence:7,
-            Car:8,
-            Pedestrian:9,
-            Bicyclist:10,
-        }
-
-        self.label_mapping = collections.defaultdict(lambda: 0)
-
-        for key, value in mapping.items():
-            self.label_mapping[key] = value
     def __len__(self):
         return len(self.files[self.split])
 
     def __getitem__(self, index):
         img_name = self.files[self.split][index]
         img_path = self.root + "/" + self.split + "/" + img_name
-        lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.png"
-
         img = imread(img_path)
         img = np.array(img, dtype=np.uint8)
 
-        lbl = imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.uint8)
+        if self.convert_label_class:
+            lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.npy"
+            lbl = np.load(lbl_path)
+        else:
+            lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.png"
+            lbl = imread(lbl_path)
+            lbl = np.array(lbl, dtype=np.uint8)
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
@@ -90,16 +66,8 @@ class camvidLoader(data.Dataset):
         if self.img_norm:
             #PERFORM NORMALISATION
             pass
-        lbl = self.classify(lbl)
         img = np.transpose(img, axes=(2,0,1))
         return img, lbl
-
-    def classify(self, lbl):
-        masked_lbl = np.zeros(shape=(self.img_size[0],self.img_size[1]))
-        for i in range(self.img_size[0]):
-            for j in range(self.img_size[1]):
-                masked_lbl[i,j] = self.label_mapping[tuple(lbl[i,j])]
-        return masked_lbl
 
 if __name__ == "__main__":
     local_path = "CamVid"

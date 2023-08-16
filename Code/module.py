@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.mobilenetv2 import Conv2dNormActivation as ConvBNReLU
-from torch.ao.nn.intrinsic import ConvBn2d
 
 
 
