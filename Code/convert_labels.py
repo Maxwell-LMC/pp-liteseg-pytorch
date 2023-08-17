@@ -35,24 +35,24 @@ label_mapping = collections.defaultdict(lambda: 0)
 
 # root = "Camvid"
 
-root = os.path.dirname(os.getcwd()) + "/CamVid"
+# root = os.path.dirname(os.getcwd()) + "/CamVid"
 
-for key, value in mapping.items():
-    label_mapping[key] = value
+# for key, value in mapping.items():
+#     label_mapping[key] = value
 
-for split in ["val"]:
-    file_list = os.listdir(root + "/" + split)
-    label_list = os.listdir(root + "/" + split + "_labels")
-    for img_name in file_list:
-        s = img_name[:-4] + "_L.npy"
-        if s in label_list:
-            continue
-        lbl_path = root + "/" + split + "_labels/" + img_name[:-4] + "_L.png"
-        lbl = imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.uint8)
-        convert = np.zeros(shape=img_size)
-        for i in range(img_size[0]):
-            for j in range(img_size[1]):
-                convert[i,j] = label_mapping[tuple(lbl[i,j])]
-        np.save(file=(root + "/" + split + "_labels/" + img_name[:-4] + "_L.npy"), arr=convert)
-        print(lbl_path)
+# for split in ["val"]:
+#     file_list = os.listdir(root + "/" + split)
+#     label_list = os.listdir(root + "/" + split + "_labels")
+#     for img_name in file_list:
+#         s = img_name[:-4] + "_L.npy"
+#         if s in label_list:
+#             continue
+#         lbl_path = root + "/" + split + "_labels/" + img_name[:-4] + "_L.png"
+#         lbl = imread(lbl_path)
+#         lbl = np.array(lbl, dtype=np.uint8)
+#         convert = np.zeros(shape=img_size)
+#         for i in range(img_size[0]):
+#             for j in range(img_size[1]):
+#                 convert[i,j] = label_mapping[tuple(lbl[i,j])]
+#         np.save(file=(root + "/" + split + "_labels/" + img_name[:-4] + "_L.npy"), arr=convert)
+#         print(lbl_path)

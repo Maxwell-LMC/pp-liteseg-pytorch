@@ -2,38 +2,59 @@ import pytorch_liteseg
 from STDC1_pytorch_raw.model import STDC1
 import torch
 import torch.onnx
+import numpy as np
+import matplotlib.pyplot as plt
+from imageio.v2 import imread
+from convert_labels import mapping
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 ###initialise liteseg model
-model = pytorch_liteseg.liteseg(num_classes=10, encoder=STDC1)
+# model = pytorch_liteseg.liteseg(num_classes=10, encoder=STDC1)
 
-feature = torch.randn((3,3,720,960))
+# feature = torch.randn((3,3,720,960))
+# model.eval()
+# with torch.inference_mode():
+#     output = model(feature)
+#     print(output.shape)
+
+loss_list = np.load(file="Code/loss_list_1.npy")
+iter_list = np.linspace(1, len(loss_list), num=len(loss_list))
+plt.scatter(x=iter_list, y=loss_list, marker="o", s=2)
+plt.ylabel("loss")
+plt.xlabel("iterations")
+plt.yticks(np.linspace(0,3,31))
+plt.show()
+
+img_size = (720,960,3)
+
+model = pytorch_liteseg.liteseg(num_classes=11, encoder=STDC1)
+model.load_state_dict(torch.load(f="Code/state_dict_1.pth", map_location=torch.device(device)))
+img_path = "CamVid/test/0006R0_f02850.png"
+img = imread(img_path)
+img = np.array(img, dtype=np.uint8)
+img = np.transpose(img, axes=(2,0,1))
+img_tensor = torch.from_numpy(img)
+img_tensor = img_tensor.unsqueeze(dim = 0)
+print(img_tensor.shape)
 model.eval()
 with torch.inference_mode():
-    output = model(feature)
-    print(output.shape)
+    pred = model(img_tensor.float())
+    pred = pred.squeeze(dim=0)
+    pred_argmax = torch.argmax(pred, dim=0, keepdim=True)
+    segmented_img = pred_argmax.squeeze(dim=0)
 
+reverse_mapping = {}
+for key, value in mapping.items():
+    reverse_mapping[value] = key
 
-#Function to Convert to ONNX 
-def Convert_ONNX(): 
+converted_seg = np.zeros(shape=img_size)
+for i in range(img_size[0]):
+    for j in range(img_size[1]):
+        for k in range(img_size[2]):
+            converted_seg[i,j,k] = reverse_mapping[int(segmented_img[i,j])][k]
 
-    # set the model to inference mode 
-    model.eval() 
+print(converted_seg.shape)
 
-    # Let's create a dummy input tensor  
-    dummy_input = torch.randn((1,3,512,1024), requires_grad=True)  
-
-    # Export the model   
-    torch.onnx.export(model,         # model being run 
-         dummy_input,       # model input (or a tuple for multiple inputs) 
-         "pytorch-liteseg.onnx",       # where to save the model  
-         export_params=True,  # store the trained parameter weights inside the model file 
-         opset_version=10,    # the ONNX version to export the model to 
-         do_constant_folding=True,  # whether to execute constant folding for optimization 
-         input_names = ['modelInput'],   # the model's input names 
-         output_names = ['modelOutput'], # the model's output names 
-         dynamic_axes={'modelInput' : {0 : 'batch_size'},    # variable length axes 
-                                'modelOutput' : {0 : 'batch_size'}}) 
-    print(" ") 
-    print('Model has been converted to ONNX') 
-
-# Convert_ONNX()
+plt.imshow(converted_seg.astype(int))
+plt.show()
