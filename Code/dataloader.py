@@ -6,7 +6,7 @@ from imageio.v2 import imread
 import matplotlib.pyplot as plt
 from torch.utils import data
 from utils.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
-
+from torchvision import transforms
 
 class camvidLoader(data.Dataset):
     def __init__(
@@ -36,6 +36,14 @@ class camvidLoader(data.Dataset):
         for split in ["train", "test", "val"]:
             file_list = os.listdir(root + "/" + split)
             self.files[split] = file_list[:self.train_size]
+        
+        self.norm = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.464, 0.475, 0.480],
+                std=[0.307, 0.287, 0.290],
+            ),
+        ])
 
     def __len__(self):
         return len(self.files[self.split])
@@ -64,26 +72,41 @@ class camvidLoader(data.Dataset):
 
     def transform(self, img, lbl):
         if self.img_norm:
-            #PERFORM NORMALISATION
-            pass
-        img = np.transpose(img, axes=(2,0,1))
-        return img, lbl
+            normalized_img = self.norm(img)
+        return normalized_img, lbl
+
+def get_mean_std(loader):
+    # Compute the mean and standard deviation of all pixels in the dataset
+    num_batch = 0
+    mean = 0.0
+    std = 0.0
+    for images, _ in loader:
+        batch_size, height, width, channel = images.shape
+        num_batch += batch_size
+        mean += images.float().mean(axis=(0, 1, 2))
+        std += images.float().std(axis=(0, 1, 2))
+
+    mean /= num_batch
+    std /= num_batch
+
+    return mean, std
 
 if __name__ == "__main__":
     local_path = "CamVid"
     augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip(0.5)])
-    dst = camvidLoader(root=local_path, is_transform=True, augmentations=None, img_norm=False)
+    dst = camvidLoader(root=local_path, is_transform=True, convert_label_class=False,augmentations=None, img_norm=True)
     bs = 2
     trainloader = data.DataLoader(dst, batch_size=bs)
     for i, data_samples in enumerate(trainloader):
         imgs, labels = data_samples
-        # imgs = np.transpose(imgs, [0, 1,2,3])
-        # f, axarr = plt.subplots(bs, 2)
+        f, axarr = plt.subplots(bs, 2)
         for j in range(bs):
-            print(type(imgs[j]), type(labels[j]))
-            # print(imgs[j], labels[j])
-            # print(imgs[j].shape, labels[j].shape)
-            # axarr[j][0].imshow(imgs[j])
-            # axarr[j][1].imshow(labels[j])
-        # plt.show()
+            axarr[j][0].imshow(imgs[j])
+            axarr[j][1].imshow(labels[j])
+        plt.show()
         break
+
+    # batch_size = 1
+    # loader = data.DataLoader(dst, batch_size=batch_size, shuffle=True)
+    # mean, std = get_mean_std(loader)
+    # print(f"mean: {mean}, std: {std}")

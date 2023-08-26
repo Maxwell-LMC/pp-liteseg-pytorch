@@ -12,7 +12,7 @@ import numpy as np
 #initial setup
 torch.seed = 42
 device = "cuda" if torch.cuda.is_available() else "cpu"
-epoch_num = 30
+epoch_num = 70
 
 
 #initialise model
@@ -26,7 +26,7 @@ local_path = os.path.dirname(os.getcwd()) + "/CamVid"
 print(local_path)
 
 # local_path = "Camvid"
-#augmentations = aug.Compose([aug.RandomRotate(10), aug.RandomHorizontallyFlip(0.5)])
+augmentations = aug.Compose([aug.RandomRotate(10), aug.RandomHorizontallyFlip(0.5)])
 dst = camvidLoader(root=local_path, train_size=368, split="train", is_transform=True, augmentations=None, img_norm=True, convert_label_class=True)
 bs = 8
 trainloader = data.DataLoader(dst, batch_size=bs, shuffle=True)
@@ -44,7 +44,7 @@ loss_list = []
 for epoch in range(epoch_num):
     if epoch == 0:
         for g in optimiser.param_groups:
-            g["lr"] = base_lr / 4
+            g["lr"] = base_lr / 10
     if epoch == 1:
         for g in optimiser.param_groups:
             g["lr"] = base_lr
@@ -65,8 +65,8 @@ for epoch in range(epoch_num):
     
 loss_list = np.asarray(loss_list)
 
-np.save(file="/home/paperspace/Documents/Code/loss_list_1.npy", arr = loss_list)
-torch.save(model.state_dict(), "/home/paperspace/Documents/Code/state_dict_1.pth")
+np.save(file="/home/paperspace/Documents/Code/loss_list_2.npy", arr = loss_list)
+torch.save(model.state_dict(), "/home/paperspace/Documents/Code/state_dict_2.pth")
     
 
 

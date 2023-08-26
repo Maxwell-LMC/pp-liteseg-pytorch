@@ -16,6 +16,12 @@ Fence = (64, 64, 128)
 Car = (64, 0, 128)
 Pedestrian = (64, 64, 0)
 Bicyclist = (0, 128, 192)
+Animal = (64, 128, 64)
+Archway = (192, 0, 128)
+Child = (192,128,64)
+LaneMkgsDriv = (128, 0, 192)
+LaneMkgsNonDriv= (192, 0, 64)
+
 
 mapping = {
     Unlabelled:0,

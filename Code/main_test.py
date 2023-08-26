@@ -9,7 +9,7 @@ from convert_labels import mapping
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-loss_list = np.load(file="Code/Trained_data/loss_list_1.npy")
+loss_list = np.load(file="Code/Trained_data/loss_list_2.npy")
 iter_list = np.linspace(1, len(loss_list), num=len(loss_list))
 plt.scatter(x=iter_list, y=loss_list, marker="o", s=2)
 plt.ylabel("loss")
@@ -20,7 +20,7 @@ plt.show()
 img_size = (720,960,3)
 
 model = pytorch_liteseg.liteseg(num_classes=11, encoder=STDC1)
-model.load_state_dict(torch.load(f="Code/Trained_data/state_dict_1.pth", map_location=torch.device(device)))
+model.load_state_dict(torch.load(f="Code/Trained_data/state_dict_2.pth", map_location=torch.device(device)))
 img_path = "CamVid/test/0006R0_f02850.png"
 img = imread(img_path)
 img = np.array(img, dtype=np.uint8)
