@@ -64,7 +64,6 @@ class camvidLoader(data.Dataset):
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
-
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
 
@@ -94,15 +93,16 @@ def get_mean_std(loader):
 if __name__ == "__main__":
     local_path = "CamVid"
     augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip(0.5)])
-    dst = camvidLoader(root=local_path, is_transform=True, convert_label_class=False,augmentations=None, img_norm=True)
+    dst = camvidLoader(root=local_path, is_transform=True, convert_label_class=True,augmentations=augmentations, img_norm=True)
     bs = 2
     trainloader = data.DataLoader(dst, batch_size=bs)
     for i, data_samples in enumerate(trainloader):
         imgs, labels = data_samples
         f, axarr = plt.subplots(bs, 2)
         for j in range(bs):
-            axarr[j][0].imshow(imgs[j])
-            axarr[j][1].imshow(labels[j])
+            print(labels.shape)
+            # axarr[j][0].imshow(imgs[j])
+            # axarr[j][1].imshow(labels[j])
         plt.show()
         break
 

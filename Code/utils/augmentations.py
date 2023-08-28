@@ -16,7 +16,7 @@ class Compose(object):
     def __call__(self, img, mask):
         if isinstance(img, np.ndarray):
             img = Image.fromarray(img, mode="RGB")
-            mask = Image.fromarray(mask, mode="RGB")
+            mask = Image.fromarray(mask, mode="L")
             self.PIL2Numpy = True
 
         assert img.size == mask.size

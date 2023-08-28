@@ -16,11 +16,11 @@ TEST_SIZE = 232
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# local_path = "CamVid"
+#local_path = "CamVid"
 local_path = os.path.dirname(os.getcwd())
 
 model = pytorch_liteseg.liteseg(num_classes=11, encoder=STDC1)
-model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_2.pth", map_location=torch.device(device)))
+model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_3.pth", map_location=torch.device(device)))
 jaccard = JaccardIndex(num_classes=CLASS_NUM, task="multiclass", ignore_index = 0)
 
 
