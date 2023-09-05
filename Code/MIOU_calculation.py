@@ -8,6 +8,8 @@ from dataloader import camvidLoader
 from torch.utils import data
 from convert_labels import mapping
 import os
+import albumentations as A
+from albumentations import augmentations as aug
 
 CLASS_NUM = 11
 IMG_SIZE = (720,960,3)
@@ -16,15 +18,23 @@ TEST_SIZE = 232
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-#local_path = "CamVid"
+# local_path = "CamVid"
 local_path = os.path.dirname(os.getcwd())
 
-model = pytorch_liteseg.liteseg(num_classes=11, encoder=STDC1)
-model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_3.pth", map_location=torch.device(device)))
-jaccard = JaccardIndex(num_classes=CLASS_NUM, task="multiclass", ignore_index = 0)
 
 
-dst = camvidLoader(root=local_path + "/CamVid", train_size=TEST_SIZE, split="test", is_transform=True, augmentations=None, img_norm=True, convert_label_class=True)
+model = pytorch_liteseg.liteseg(num_classes=CLASS_NUM, encoder=STDC1)
+model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_8.pth", map_location=torch.device(device)))
+jaccard = JaccardIndex(num_classes=CLASS_NUM, task="multiclass", ignore_index=255)
+
+
+augmentations = A.Compose([A.HorizontalFlip(p=0.5),
+                           A.VerticalFlip(p=0.5),
+                           aug.transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue = 0, always_apply=False, p=0.5),
+                           aug.crops.RandomResizedCrop(height=720, width=960, scale=(0.5,2.5), p=0.5)])
+
+dst = camvidLoader(root=local_path + "/CamVid", train_size=TEST_SIZE, split="test", augmentations=None, img_norm=True, convert_label_class=True,
+                   use_grouped_classes=True)
 bs = 1
 testloader = data.DataLoader(dst, batch_size=bs, shuffle=False)
 
@@ -46,18 +56,18 @@ with torch.inference_mode():
         iou = jaccard(segmented_img, lbl_true)
         print(iou)
         total_iou += iou
-        # converted_seg = np.zeros(shape=IMG_SIZE)
-        # converted_lbl = np.zeros(shape=IMG_SIZE)
-        # for i in range(IMG_SIZE[0]):
-        #     for j in range(IMG_SIZE[1]):
-        #         for k in range(IMG_SIZE[2]):
-        #             converted_lbl[i,j,k] = reverse_mapping[int(lbl_true[i,j])][k]
-        #             converted_seg[i,j,k] = reverse_mapping[int(segmented_img[i,j])][k]
+        converted_seg = np.zeros(shape=IMG_SIZE)
+        converted_lbl = np.zeros(shape=IMG_SIZE)
+        for i in range(IMG_SIZE[0]):
+            for j in range(IMG_SIZE[1]):
+                for k in range(IMG_SIZE[2]):
+                    converted_lbl[i,j,k] = reverse_mapping[int(lbl_true[i,j])][k]
+                    converted_seg[i,j,k] = reverse_mapping[int(segmented_img[i,j])][k]
 
-        # plt.imshow(converted_lbl.astype(int))
-        # plt.show()
-        # plt.imshow(converted_seg.astype(int))
-        # plt.show()
+        plt.imshow(converted_lbl.astype(int))
+        plt.show()
+        plt.imshow(converted_seg.astype(int))
+        plt.show()
 
 mean_iou = total_iou / TEST_SIZE
 print("MIOU is:")

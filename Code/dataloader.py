@@ -7,24 +7,24 @@ import matplotlib.pyplot as plt
 from torch.utils import data
 from utils.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
 from torchvision import transforms
-
+import albumentations as A
+import albumentations.augmentations as aug
 class camvidLoader(data.Dataset):
     def __init__(
         self,
         root,
         split="train",
-        is_transform=False,
         img_size=[720,960],
         augmentations=None,
         img_norm=True,
         train_size = 100,
-        n_classes = 11,
-        convert_label_class = True
+        n_classes = 12,
+        convert_label_class = True,
+        use_grouped_classes = True
     ):
         self.root = root
         self.split = split
         self.img_size = img_size
-        self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_norm = img_norm
         self.mean = np.array([0,0,0])
@@ -32,19 +32,16 @@ class camvidLoader(data.Dataset):
         self.files = collections.defaultdict(list)
         self.train_size = train_size
         self.convert_label_class = convert_label_class
+        self.use_grouped_classes = use_grouped_classes
 
         for split in ["train", "test", "val"]:
             file_list = os.listdir(root + "/" + split)
             self.files[split] = file_list[:self.train_size]
-        
-        self.norm = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.464, 0.475, 0.480],
-                std=[0.307, 0.287, 0.290],
-            ),
-        ])
 
+        self.norm = A.Compose([aug.transforms.Normalize(mean=[0.464, 0.475, 0.480],
+                                                        std=[0.307, 0.287, 0.290],
+                                                        max_pixel_value=255.0,
+                                                        p=1)])
     def __len__(self):
         return len(self.files[self.split])
 
@@ -55,24 +52,31 @@ class camvidLoader(data.Dataset):
         img = np.array(img, dtype=np.uint8)
 
         if self.convert_label_class:
-            lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.npy"
-            lbl = np.load(lbl_path)
+            if self.use_grouped_classes:
+                lbl_path = self.root + "/CamVidGray/" + img_name[:-4] + "_L.png"
+                lbl = imread(lbl_path)
+                lbl = np.array(lbl, dtype=np.uint8)
+            else:
+                lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.npy"
+                lbl = np.load(lbl_path)
         else:
             lbl_path = self.root + "/" + self.split + "_labels/" + img_name[:-4] + "_L.png"
             lbl = imread(lbl_path)
             lbl = np.array(lbl, dtype=np.uint8)
 
         if self.augmentations is not None:
-            img, lbl = self.augmentations(img, lbl)
-        if self.is_transform:
-            img, lbl = self.transform(img, lbl)
+            augmented = self.augmentations(image=img, mask=lbl)
+            img = augmented['image']
+            lbl = augmented['mask']
+
+        if self.img_norm:
+            normalised = self.norm(image=img, mask=lbl)
+            img = normalised['image']
+            lbl = normalised['mask']
+        
+        img = np.transpose(img, axes=(2,0,1))
 
         return img, lbl
-
-    def transform(self, img, lbl):
-        if self.img_norm:
-            normalized_img = self.norm(img)
-        return normalized_img, lbl
 
 def get_mean_std(loader):
     # Compute the mean and standard deviation of all pixels in the dataset
@@ -92,17 +96,20 @@ def get_mean_std(loader):
 
 if __name__ == "__main__":
     local_path = "CamVid"
-    augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip(0.5)])
-    dst = camvidLoader(root=local_path, is_transform=True, convert_label_class=True,augmentations=augmentations, img_norm=True)
+    augmentations = A.Compose([A.RandomCrop(width=960, height=720),
+                               A.HorizontalFlip(p=0.5),
+                               A.RandomBrightnessContrast(p=0.2)])
+    dst = camvidLoader(root=local_path, convert_label_class=False,augmentations=augmentations, img_norm=True)
     bs = 2
     trainloader = data.DataLoader(dst, batch_size=bs)
     for i, data_samples in enumerate(trainloader):
         imgs, labels = data_samples
+        print(data_samples)
         f, axarr = plt.subplots(bs, 2)
         for j in range(bs):
-            print(labels.shape)
-            # axarr[j][0].imshow(imgs[j])
-            # axarr[j][1].imshow(labels[j])
+            print(labels)
+            axarr[j][0].imshow(imgs[j])
+            axarr[j][1].imshow(labels[j])
         plt.show()
         break
 

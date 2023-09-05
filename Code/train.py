@@ -1,18 +1,20 @@
 from dataloader import camvidLoader
 import torch
 from torch.utils import data
-import utils.augmentations as aug
 import matplotlib.pyplot as plt
 from pytorch_liteseg import liteseg
 from STDC1_pytorch_raw.model import STDC1
 import os
 import numpy as np
-from utils.OHEMloss import OhemCELoss
+from utils.OHEMloss import OhemCrossEntropyLoss
+import albumentations as A
+from albumentations import augmentations as aug
+
 
 #initial setup
 torch.seed = 42
 device = "cuda" if torch.cuda.is_available() else "cpu"
-epoch_num = 164
+epoch_num = 168
 
 
 #initialise model
@@ -24,25 +26,27 @@ print(next(model.parameters()).device)
 
 # FOR LINUX
 local_path = os.path.dirname(os.getcwd()) + "/CamVid"
-print(local_path)
 
 # FOR WINDOWS
 # local_path = "Camvid"
 
-augmentations = aug.Compose([aug.RandomRotate(10), 
-                             aug.RandomHorizontallyFlip(0.5), 
-                             aug.RandomVerticallyFlip(0.5)])
-dst = camvidLoader(root=local_path, train_size=366, split="train", is_transform=True, augmentations=None, img_norm=True, convert_label_class=True)
+print(local_path)
+
+augmentations = A.Compose([A.HorizontalFlip(p=0.5),
+                           A.VerticalFlip(p=0.5),
+                           aug.transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue = 0, always_apply=False, p=0.5),
+                           aug.crops.RandomResizedCrop(height=720, width=960, scale=(0.5,2.5), p=0.5)])
+dst = camvidLoader(root=local_path, train_size=366, split="train", augmentations=augmentations, img_norm=True, convert_label_class=True)
 bs = 6
 trainloader = data.DataLoader(dst, batch_size=bs, shuffle=True)
-dst_test = camvidLoader(root=local_path, train_size=100, split="test", is_transform=True, augmentations=None, img_norm=True, convert_label_class=True)
+dst_test = camvidLoader(root=local_path, train_size=100, split="test", augmentations=None, img_norm=True, convert_label_class=True)
 testloader = data.DataLoader(dst_test, batch_size=1, shuffle=False)
 
 #set loss function and optimiser
 base_lr = 0.01
 warm_up_lr = 1e-5
-loss_fn = torch.nn.CrossEntropyLoss()
-OHEM_loss_fn = OhemCELoss(thresh=0.7, n_min=250000)
+loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255)
+OHEM_loss_fn = OhemCrossEntropyLoss(min_kept=250000, ignore_index=255)
 optimiser = torch.optim.SGD(params=model.parameters(), lr=warm_up_lr, momentum=0.9, weight_decay=5e-4)
 
 n = 0
@@ -95,9 +99,9 @@ for epoch in range(epoch_num):
 train_loss_list = np.asarray(train_loss_list)
 test_loss_list = np.asarray(test_loss_list)
 
-np.save(file="/home/paperspace/Documents/Code/Trained_data/train_loss_list_5.npy", arr = train_loss_list)
-np.save(file="/home/paperspace/Documents/Code/Trained_data/test_loss_list_5.npy", arr = test_loss_list)
-torch.save(model.state_dict(), "/home/paperspace/Documents/Code/Trained_data/state_dict_4.pth")
+np.save(file="/home/paperspace/Documents/Code/Trained_data/train_loss_list_8.npy", arr = train_loss_list)
+np.save(file="/home/paperspace/Documents/Code/Trained_data/test_loss_list_8.npy", arr = test_loss_list)
+torch.save(model.state_dict(), "/home/paperspace/Documents/Code/Trained_data/state_dict_8.pth")
     
 
 
