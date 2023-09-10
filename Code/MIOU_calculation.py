@@ -24,7 +24,7 @@ local_path = os.path.dirname(os.getcwd())
 
 
 model = pytorch_liteseg.liteseg(num_classes=CLASS_NUM, encoder=STDC1)
-model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_8.pth", map_location=torch.device(device)))
+model.load_state_dict(torch.load(f=local_path + "/Code/Trained_data/state_dict_12.pth", map_location=torch.device(device)))
 jaccard = JaccardIndex(num_classes=CLASS_NUM, task="multiclass", ignore_index=255)
 
 
@@ -49,25 +49,13 @@ with torch.inference_mode():
     for batch_num, batch in enumerate(testloader):
         img, lbl_true = batch
         lbl_true = lbl_true[0]
-        lbl_pred = model(img.float())
+        lbl_pred = model(img.float())[0]
         lbl_pred = lbl_pred.squeeze(dim=0)
         pred_argmax = torch.argmax(lbl_pred, dim=0, keepdim=True)
         segmented_img = pred_argmax.squeeze(dim=0)
         iou = jaccard(segmented_img, lbl_true)
         print(iou)
         total_iou += iou
-        converted_seg = np.zeros(shape=IMG_SIZE)
-        converted_lbl = np.zeros(shape=IMG_SIZE)
-        for i in range(IMG_SIZE[0]):
-            for j in range(IMG_SIZE[1]):
-                for k in range(IMG_SIZE[2]):
-                    converted_lbl[i,j,k] = reverse_mapping[int(lbl_true[i,j])][k]
-                    converted_seg[i,j,k] = reverse_mapping[int(segmented_img[i,j])][k]
-
-        plt.imshow(converted_lbl.astype(int))
-        plt.show()
-        plt.imshow(converted_seg.astype(int))
-        plt.show()
 
 mean_iou = total_iou / TEST_SIZE
 print("MIOU is:")

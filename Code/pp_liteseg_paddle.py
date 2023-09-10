@@ -119,7 +119,7 @@ class PPLiteSeg(nn.Layer):
             for x, seg_head in zip(feats_head, self.seg_heads):
                 x = seg_head(x)
                 logit_list.append(x)
-
+            
             logit_list = [
                 F.interpolate(
                     x, x_hw, mode='bilinear', align_corners=False)

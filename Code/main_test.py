@@ -9,13 +9,14 @@ from convert_labels import mapping
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-loss_list = np.load(file="Code/Trained_data/test_loss_list_8.npy")
+loss_list = np.load(file="Code/Trained_data/test_loss_list_12.npy")
 iter_list = np.linspace(1, len(loss_list), num=len(loss_list))
 plt.scatter(x=iter_list, y=loss_list, marker="o", s=2)
 plt.ylabel("loss")
 plt.xlabel("epoch")
 plt.yticks(np.linspace(0,3,31))
 plt.show()
+print(loss_list)
 
 img_size = (720,960,3)
 
